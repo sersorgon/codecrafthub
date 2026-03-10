@@ -1,0 +1,89 @@
+# =============================================================
+# docker-compose.yml - user-management-service
+# =============================================================
+# Orquesta dos servicios:
+#   - app:     La API Node.js/Express
+#   - mongodb: Base de datos MongoDB
+#
+# Uso:
+#   Arrancar:  docker-compose up -d
+#   Parar:     docker-compose down
+#   Logs:      docker-compose logs -f
+#   Rebuild:   docker-compose up -d --build
+# =============================================================
+
+version: '3.8'
+
+services:
+
+  # -----------------------------------------------------------
+  # Servicio: app (Node.js / Express)
+  # -----------------------------------------------------------
+  app:
+    # Construye la imagen a partir del Dockerfile en el directorio actual
+    build: .
+    container_name: user-management-app
+    # Reinicia automáticamente si el contenedor falla
+    restart: unless-stopped
+    # Mapea el puerto 5000 del host al puerto 5000 del contenedor
+    ports:
+      - "5000:5000"
+    # Variables de entorno para la app (sobreescriben el .env interno)
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://root:rootpassword@mongodb:27017/usermngtservice?authSource=admin
+      - JWT_SECRET=supersecretjwtkey
+    # La app depende de MongoDB: espera a que esté listo antes de arrancar
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    # Conecta este servicio a la red interna compartida
+    networks:
+      - app-network
+
+  # -----------------------------------------------------------
+  # Servicio: mongodb
+  # -----------------------------------------------------------
+  mongodb:
+    # Usa la imagen oficial de MongoDB 7
+    image: mongo:7
+    container_name: user-management-mongo
+    restart: unless-stopped
+    # Mapea el puerto 27017 del host al contenedor (acceso externo opcional)
+    ports:
+      - "27017:27017"
+    # Credenciales del usuario root de MongoDB
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=rootpassword
+      - MONGO_INITDB_DATABASE=usermngtservice
+    # Persiste los datos de MongoDB en un volumen nombrado
+    # (los datos sobreviven si el contenedor se elimina)
+    volumes:
+      - mongodb-data:/data/db
+    # Comprobación de salud: verifica que MongoDB acepta conexiones
+    # La app esperará hasta que este check sea exitoso
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s   # Comprueba cada 10 segundos
+      timeout: 5s     # Tiempo máximo de espera por comprobación
+      retries: 5      # Número de reintentos antes de considerar unhealthy
+      start_period: 10s # Tiempo de gracia inicial
+    networks:
+      - app-network
+
+# -----------------------------------------------------------
+# Redes
+# -----------------------------------------------------------
+networks:
+  app-network:
+    # Red bridge interna: los servicios se comunican por nombre de servicio
+    driver: bridge
+
+# -----------------------------------------------------------
+# Volúmenes
+# -----------------------------------------------------------
+volumes:
+  mongodb-data:
+    # Volumen gestionado por Docker para persistencia de datos
+    driver: local

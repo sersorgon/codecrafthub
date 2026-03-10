@@ -1,0 +1,39 @@
+# =============================================================
+# .dockerignore - user-management-service
+# =============================================================
+# Excluye estos archivos y carpetas al construir la imagen Docker.
+# Reduce el tamaño del contexto de build y evita copiar
+# archivos innecesarios o sensibles al contenedor.
+# =============================================================
+
+# Dependencias de Node.js (se instalan dentro del contenedor)
+node_modules/
+npm-debug.log*
+
+# Variables de entorno (no se deben incluir en la imagen)
+.env
+
+# Archivos de log
+*.log
+error.log
+
+# Directorio de tests (no necesario en producción)
+test/
+
+# Archivos de control de versiones
+.git/
+.gitignore
+
+# Archivos de Docker (evita recursividad)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Archivos del IDE y sistema operativo
+.theia/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# Cobertura de tests
+coverage/
